@@ -23,7 +23,15 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.gson.Gson;
 import com.kwabenaberko.newsapilib.NewsApiClient;
 import com.kwabenaberko.newsapilib.models.Article;
 import com.kwabenaberko.newsapilib.models.request.TopHeadlinesRequest;
@@ -37,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     RecyclerView recyclerView;
     List<Article> articleList = new LinkedList<>();
+    Article temp = new Article();
     NewsRecyclerAdaptor adaptor;
     LinearProgressIndicator progressIndicator;
     Button btn1,btn2,btn3,btn4,btn5,btn6,btn7;
@@ -49,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     LinearLayout noInternet;
 
     HorizontalScrollView horizontalScrollView;
+    Gson gson = new Gson();
 
 
     @Override
@@ -130,33 +140,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     void getNews(String catagory,String query){
         changeInProgress(true);
-        NewsApiClient newsApiClient = new NewsApiClient("1456376b5ea14ab0a6cdd8d8ac380a80");
-        newsApiClient.getTopHeadlines(
-                new TopHeadlinesRequest.Builder()
-                        .language("en")
-                        .category(catagory)
-                        .q(query)
-                        .build(),
-                new NewsApiClient.ArticlesResponseCallback() {
-                    @SuppressLint("NotifyDataSetChanged")
-                    @Override
-                    public void onSuccess(ArticleResponse response) {
-                        runOnUiThread(()->{
-                            changeInProgress(false);
-                            articleList = response.getArticles();
-                            Collections.shuffle(articleList);
-                            adaptor.updataData(articleList);
-                            adaptor.notifyDataSetChanged();
+        String api;
+        if(!Objects.equals(catagory, "GENERAL") && query == null){
+            api = String.format("https://news-wave-back-end.vercel.app/news?catagory=%s", catagory);
+        } else if (!Objects.equals(query, null)) {
+            api = String.format("https://news-wave-back-end.vercel.app/news?q=%s", query);
+        }else {
+            api = "https://news-wave-back-end.vercel.app/news";
+        }
+        RequestQueue queue = Volley.newRequestQueue(this);
 
-                        });
-                    }
 
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, api,
+                new Response.Listener<String>() {
                     @Override
-                    public void onFailure(Throwable throwable) {
-                        Log.i("Got Failure", Objects.requireNonNull(throwable.getMessage()));
+                    public void onResponse(String response) {
+                        changeInProgress(true);
+                        NewsResponse news = gson.fromJson(response,NewsResponse.class);
+                        List<Article> articleList = news.getArticles();
+                        Collections.shuffle(articleList);
+                        adaptor.updataData(articleList);
+                        adaptor.notifyDataSetChanged();
+                        changeInProgress(false);
                     }
-                }
-        );
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        });
+
+
+        queue.add(stringRequest);
+
     }
 
     @Override

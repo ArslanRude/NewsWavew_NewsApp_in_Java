@@ -28,15 +28,12 @@ public class NewsFullActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
 
-
             String url = getIntent().getStringExtra("url");
             webView = findViewById(R.id.web_view);
             WebSettings webSettings = webView.getSettings();
             webSettings.setJavaScriptEnabled(true);
             webView.setWebViewClient(new WebViewClient());
             webView.loadUrl(url);
-
-
 
             return insets;
         });
